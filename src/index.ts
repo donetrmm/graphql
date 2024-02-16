@@ -1,7 +1,6 @@
 import 'dotenv/config'
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
-import { title } from 'process';
 
 const books: any = [
     {
@@ -29,28 +28,27 @@ const authors = [
         id: 1,
         name: 'Iskander',
         lastName: 'Ramos',
-        age: '19'
+        age: 19
     },
     {
         id: 2,
         name: 'María',
         lastName: 'García',
-        age: '32'
+        age: 32
     },
     {
         id: 3,
         name: 'John',
         lastName: 'Doe',
-        age: '45'
+        age: 45
     },
     {
         id: 4,
         name: 'Emily',
         lastName: 'Smith',
-        age: '28'
+        age: 28
     }
 ];
-
 
 // Definir schema
 const typeDefs = `
@@ -77,39 +75,69 @@ const typeDefs = `
         stock: Int
     }
 
+    input UpdateBookInput {
+        id: ID!
+        title: String
+        stock: Int
+    }
+
+    input DeleteBookInput {
+        id: ID!
+    }
+
     type Mutation {
         createBook(book: BookInput): Book
+        updateBook(book: UpdateBookInput): Book
+        deleteBook(book: DeleteBookInput): Book
     }
 `;
-// El signo de admiración en book hace que sea requerido el parametro
 
 const resolvers = {
     Query: {
         books: () => books,
-        book: (_parent: any, args: any ) => {
+        book: (_parent: any, args: any) => {
             const bookId = args.id;
-            for(let book of books){
-                if(book.id == bookId) return book;
-            }
+            return books.find((book: any) => book.id === Number(bookId));
         },
         authors: () => authors,
     },
 
     Mutation: {
-            createBook: (_: void, args: any) => {
-                const bookInput = args.book
-                const book = {
-                    id: books.length + 1,
-                    title: bookInput.title,
-                    stock: bookInput.stock,
-                }
-
-                books.push(book);
-
-                return book;
+        createBook: (_: void, args: any) => {
+            const bookInput = args.book;
+            const book = {
+                id: books.length + 1,
+                title: bookInput.title,
+                stock: bookInput.stock,
+            };
+            books.push(book);
+            return book;
+        },
+        updateBook: (_: void, args: any) => {
+            const { id, title, stock } = args.book;
+            const bookIndex = books.findIndex((book: any) => book.id === Number(id));
+            if (bookIndex === -1) {
+                throw new Error('Libro no encontrado.');
             }
-        }
-}
+            if (title) {
+                books[bookIndex].title = title;
+            }
+            if (stock !== undefined) {
+                books[bookIndex].stock = stock;
+            }
+            return books[bookIndex];
+        },
+        deleteBook: (_: void, args: any) => {
+            const { id } = args.book;
+            const bookIndex = books.findIndex((book: any) => book.id === Number(id));
+            if (bookIndex === -1) {
+                throw new Error('Libro no encontrado');
+            }
+            const deletedBook = books.splice(bookIndex, 1);
+            return deletedBook[0];
+        },
+    },
+};
 
 const server = new ApolloServer({
     typeDefs,
@@ -120,9 +148,10 @@ const PORT = parseInt(process.env.PORT || "3000");
 
 (async () => {
     const { url } = await startStandaloneServer(server, {
-        listen: { port: PORT}
+        listen: { port: PORT }
     });
 
-    console.log(`Corriendo en ${url}`)
+    console.log(`Corriendo en ${url}`);
 })();
-console.log("OK!")
+
+console.log("OK!");
