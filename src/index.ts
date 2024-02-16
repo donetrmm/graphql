@@ -1,8 +1,9 @@
 import 'dotenv/config'
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
+import { title } from 'process';
 
-const books = [
+const books: any = [
     {
         id: 1,
         title: 'The Awakening',
@@ -51,7 +52,7 @@ const authors = [
 ];
 
 
-// definir schema
+// Definir schema
 const typeDefs = `
     type Book {
         id: ID
@@ -68,14 +69,46 @@ const typeDefs = `
     type Query {
         books: [Book]
         authors: [Author]
+        book(id: ID!): Book
+    }
+
+    input BookInput {
+        title: String
+        stock: Int
+    }
+
+    type Mutation {
+        createBook(book: BookInput): Book
     }
 `;
+// El signo de admiración en book hace que sea requerido el parametro
 
 const resolvers = {
     Query: {
         books: () => books,
-        authors: () => authors
-    }
+        book: (_parent: any, args: any ) => {
+            const bookId = args.id;
+            for(let book of books){
+                if(book.id == bookId) return book;
+            }
+        },
+        authors: () => authors,
+    },
+
+    Mutation: {
+            createBook: (_: void, args: any) => {
+                const bookInput = args.book
+                const book = {
+                    id: books.length + 1,
+                    title: bookInput.title,
+                    stock: bookInput.stock,
+                }
+
+                books.push(book);
+
+                return book;
+            }
+        }
 }
 
 const server = new ApolloServer({
